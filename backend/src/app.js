@@ -17,6 +17,6 @@ app.use(express.static("public/Uploads/Videos"));
 app.use(express.static("public/Uploads/Audios"));
 app.use(cookieParser());
 
-app.use("/api/v1", router);
+app.use("/api/v1/videdit", router);
 
 export default app;
