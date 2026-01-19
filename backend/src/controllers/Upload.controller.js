@@ -15,6 +15,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
         size: req.file.size,
         mimetype: req.file.mimetype
     };
+    
+    
 
     return res
         .status(200)

@@ -1,7 +1,7 @@
 import axios from "axios";
 import React, { useState } from "react";
 
-const Home = () => {
+export const Home = () => {
     const [videoSource, setVideoSource] = useState(null); 
     const [selectedFile, setSelectedFile] = useState(null); // Added this to store the file
     const [backendPath, setBackendPath] = useState("");   
