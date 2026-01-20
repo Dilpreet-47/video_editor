@@ -1,23 +1,30 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import Ruler from "./Ruler.jsx";
+import { Link } from "react-router-dom";
 
 export const Home = () => {
-    const [videoSource, setVideoSource] = useState(null); 
+    const [videoSource, setVideoSource] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null); // Added this to store the file
-    const [backendPath, setBackendPath] = useState("");   
+    const [backendPath, setBackendPath] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+
+    const videoRef = useRef(null);
+    const playheadRef = useRef(null);
+    const timelineRef = useRef(null);
+    const hoverLineRef = useRef(null);
 
     // 1. Handle Selection
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        setSelectedFile(file); // Save file for upload later
-        setVideoSource(URL.createObjectURL(file)); // Show preview instantly
+        setSelectedFile(file);
+        setVideoSource(URL.createObjectURL(file));
     };
 
     // 2. Handle Upload
-    const handleUpload = async () => {
+    const handleVideoUpload = async () => {
         if (!selectedFile) return alert("Please select a video first");
 
         const formData = new FormData();
@@ -28,7 +35,7 @@ export const Home = () => {
             const response = await axios.post("http://localhost:5000/api/v1/videdit/upload", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
-            
+
             setBackendPath(response.data.data.path);
             console.log("Upload Success:", response.data.data.path);
         } catch (error) {
@@ -36,6 +43,30 @@ export const Home = () => {
             alert("Upload failed. Check backend server.");
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleTimeUpdate = () => {
+        if (videoRef.current && playheadRef.current) {
+            const video = videoRef.current;
+            const progress = (video.currentTime / video.duration) * 100;
+            playheadRef.current.style.left = `${progress}%`;
+        }
+    };
+
+    const handleMouseMove = (e) => {
+        if (!timelineRef.current || !hoverLineRef.current) return;
+
+        const rect = timelineRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        hoverLineRef.current.style.transform = `translateX(${x}px)`;
+        hoverLineRef.current.style.opacity = "1";
+    };
+
+    const handleMouseLeave = () => {
+        if (hoverLineRef.current) {
+            hoverLineRef.current.style.opacity = "0";
         }
     };
 
@@ -58,10 +89,10 @@ export const Home = () => {
                         <input type="file" name="video" accept="video/*" className="hidden" onChange={handleFileChange} />
                     </label>
 
-                    <button 
+                    <button
                         disabled={isUploading || !selectedFile}
                         className={`text-xs px-3 py-2 rounded font-bold transition ${isUploading || !selectedFile ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer'}`}
-                        onClick={handleUpload}
+                        onClick={handleVideoUpload}
                     >
                         {isUploading ? "UPLOADING..." : "UPLOAD TO SERVER"}
                     </button>
@@ -80,7 +111,7 @@ export const Home = () => {
                 <main className="h-full flex-1 bg-zinc-800 flex items-center justify-center relative p-10">
                     <div className="aspect-video w-full max-w-4xl bg-black shadow-2xl flex items-center justify-center rounded-lg overflow-hidden border border-zinc-700">
                         {videoSource ? (
-                            <video src={videoSource} controls className="w-full h-full object-contain" />
+                            <video src={videoSource} ref={videoRef} onTimeUpdate={handleTimeUpdate} controls className="w-full h-full object-contain" />
                         ) : (
                             <div className="text-gray-500 italic text-sm text-center">
                                 <div className="mb-2 text-3xl">🎬</div>
@@ -89,19 +120,27 @@ export const Home = () => {
                         )}
                     </div>
                 </main>
+                
             </div>
-
+            
             {/* Timeline Section */}
-            <section className="h-[30%] w-full bg-zinc-900 p-4 overflow-x-auto">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-mono text-blue-400">00:00:00:00</span>
-                    <button className="text-xs bg-zinc-800 border border-zinc-700 px-4 py-1 rounded hover:bg-zinc-700 transition">Play</button>
+            <section className="h-[30%] w-full bg-zinc-900 p-4 overflow-x-auto gap-4">
+                <div className="flex justify-between items-center">
+                    <Link to="/demo">Demo</Link>
+                    {/* <Ruler /> */}
                 </div>
-                <div className="w-[200%] h-20 bg-zinc-800/50 rounded-lg border border-zinc-700 relative overflow-hidden">
-                    <div className="absolute left-[15%] top-0 w-[30%] h-full bg-blue-500/20 border-x border-blue-500/50 flex items-center justify-center">
+                {/* <div className="flex items-center justify-center bg-amber-100 h-10">
+                </div> */}
+                <div ref={timelineRef} className="w-full h-20 bg-zinc-800/50 rounded-lg border border-zinc-700 relative overflow-hidden" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+                    {/* <div className="absolute left-[15%] top-0 w-[80%] h-full bg-blue-500/20 border-x border-blue-500/50 flex items-center justify-center">
                         <span className="text-[10px] text-blue-300">Active Clip</span>
-                    </div>
-                    <div className="absolute left-1/4 top-0 w-[2px] h-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] z-10" /> 
+                    </div> */}
+                    <div
+                        ref={hoverLineRef}
+                        className="absolute top-0 left-0 w-[2px] h-full border-l border-dashed border-zinc-400 opacity-0 pointer-events-none z-0"
+                        style={{ transition: 'opacity 0.2s' }}
+                    />
+                    <div ref={playheadRef} className="absolute left-0 top-0 w-[2px] h-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] z-10 cursor-pointer" />
                 </div>
             </section>
         </div>
