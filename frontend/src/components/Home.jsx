@@ -8,6 +8,7 @@ export const Home = () => {
     const [selectedFile, setSelectedFile] = useState(null); // Added this to store the file
     const [backendPath, setBackendPath] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [isTrimming, setIsTrimming] = useState(false);
 
     const videoRef = useRef(null);
     const playheadRef = useRef(null);
@@ -70,6 +71,22 @@ export const Home = () => {
         }
     };
 
+    const handleTimelineClick = (e) => {
+        if (!videoRef.current) return;
+
+        const rect = timelineRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        const timelineWidth = rect.width;
+        const clickedPosition = (x / timelineWidth) * videoRef.current.duration;
+
+        videoRef.current.currentTime = clickedPosition; // Set video time to clicked position
+
+        // Update playhead position
+        const progress = (clickedPosition / videoRef.current.duration) * 100;
+        playheadRef.current.style.left = `${progress}%`;
+    };
+
     return (
         <div className="flex flex-col w-full h-screen bg-black text-white overflow-hidden">
             <div className="flex flex-row h-[70%] w-full border-b border-gray-700">
@@ -120,22 +137,26 @@ export const Home = () => {
                         )}
                     </div>
                 </main>
-                
+
             </div>
-            
+
             {/* Timeline Section */}
-            <section className="h-[30%] w-full bg-zinc-900 p-4 overflow-x-auto gap-4">
-                <div className="flex justify-between items-center">
+            <section className="flex flex-col h-[30%] w-full bg-zinc-900 p-4 overflow-x-auto gap-4 ">
+                <div className="flex items-center gap-4">
                     <Link to="/demo">Demo</Link>
+                    <button onClick={() => setIsTrimming((prev) => !prev)} className="text-xs px-3 py-2 rounded font-bold transition bg-blue-600 hover:bg-blue-500 text-white cursor-pointer">Trim</button>
                     {/* <Ruler /> */}
                 </div>
                 {/* <div className="flex items-center justify-center bg-amber-100 h-10">
                 </div> */}
-                <div ref={timelineRef} className="w-full h-20 bg-zinc-800/50 rounded-lg border border-zinc-700 relative overflow-hidden" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-                    {/* <div className="absolute left-[15%] top-0 w-[80%] h-full bg-blue-500/20 border-x border-blue-500/50 flex items-center justify-center">
-                        <span className="text-[10px] text-blue-300">Active Clip</span>
-                    </div> */}
-                    <div
+                <div ref={timelineRef} className="w-full h-20 bg-zinc-800/50 rounded-lg border border-zinc-700 relative overflow-hidden" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleTimelineClick}>
+                   {isTrimming && (
+                    <>
+                    <div  className="absolute top-0 left-0 w-[4px] h-full border-l-10  border-blue-500 opacity-100 pointer-events-none z-0" />
+                    <div className="absolute top-0 right-0 w-[4px] h-full border-r-10  border-blue-500 opacity-100 pointer-events-none z-0" />
+                   </>
+                   )} 
+                   <div
                         ref={hoverLineRef}
                         className="absolute top-0 left-0 w-[2px] h-full border-l border-dashed border-zinc-400 opacity-0 pointer-events-none z-0"
                         style={{ transition: 'opacity 0.2s' }}
