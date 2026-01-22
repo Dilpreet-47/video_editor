@@ -87,6 +87,51 @@ export const Home = () => {
         playheadRef.current.style.left = `${progress}%`;
     };
 
+    const trimStartRef = useRef(null);
+    const trimEndRef = useRef(null);
+    const draggingHandle = useRef(null); // 'start' | 'end' | null
+
+    const startTrimDragging = (type) => (e) => {
+        e.stopPropagation();
+        draggingHandle.current = type;
+
+        const onMouseMove = (moveEvent) => {
+            if (!draggingHandle.current || !timelineRef.current) return;
+
+            const rect = timelineRef.current.getBoundingClientRect();
+            // Clamp mouse position between 0 and timeline width
+            const x = Math.max(0, Math.min(moveEvent.clientX - rect.left, rect.width));
+            const percentage = (x / rect.width) * 100;
+
+            const startPercent = parseFloat(trimStartRef.current.dataset.percent || "0");
+            const endPercent = parseFloat(trimEndRef.current.dataset.percent || "100");
+
+            if (draggingHandle.current === 'start') {
+                // Prevent start from crossing end (minus 5% gap)
+                if (percentage < endPercent - 5) {
+                    trimStartRef.current.style.transform = `translateX(${x}px)`;
+                    trimStartRef.current.dataset.percent = percentage;
+                }
+            } else if (draggingHandle.current === 'end') {
+                // Prevent end from crossing start (plus 5% gap)
+                if (percentage > startPercent + 5) {
+                    // IMPORTANT: Calculate X relative to the start of the timeline
+                    trimEndRef.current.style.transform = `translateX(${x}px)`;
+                    trimEndRef.current.dataset.percent = percentage;
+                }
+            }
+        };
+
+        const onMouseUp = () => {
+            draggingHandle.current = null;
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    };
+
     return (
         <div className="flex flex-col w-full h-screen bg-black text-white overflow-hidden">
             <div className="flex flex-row h-[70%] w-full border-b border-gray-700">
@@ -150,13 +195,39 @@ export const Home = () => {
                 {/* <div className="flex items-center justify-center bg-amber-100 h-10">
                 </div> */}
                 <div ref={timelineRef} className="w-full h-20 bg-zinc-800/50 rounded-lg border border-zinc-700 relative overflow-hidden" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleTimelineClick}>
-                   {isTrimming && (
-                    <>
-                    <div  className="absolute top-0 left-0 w-[4px] h-full border-l-10  border-blue-500 opacity-100 pointer-events-none z-0" />
-                    <div className="absolute top-0 right-0 w-[4px] h-full border-r-10  border-blue-500 opacity-100 pointer-events-none z-0" />
-                   </>
-                   )} 
-                   <div
+                    {isTrimming && (
+                        <>
+                            {/* Trim Start Handle */}
+                            <div
+                                ref={trimStartRef}
+                                onMouseDown={startTrimDragging('start')}
+                                className="absolute top-0 left-0 w-4 h-full bg-blue-600 cursor-ew-resize z-40 flex items-center justify-center border-r border-blue-400 shadow-lg"
+                                style={{ transform: 'translateX(0px)' }}
+                                data-percent="0"
+                            >
+                                {/* Visual "Grip" Icon */}
+                                <div className="flex gap-1">
+                                    <div className="w-1 h-3 bg-white/50" />
+                                    <div className="w-1 h-3 bg-white/50" />
+                                </div>
+                            </div>
+
+                            {/* Trim End Handle */}
+                            <div
+                                ref={trimEndRef}
+                                onMouseDown={startTrimDragging('end')}
+                                className="absolute top-0 right-0 w-4 h-full bg-blue-600 cursor-ew-resize z-40 flex items-center justify-center border-l border-blue-400 shadow-lg"
+                                style={{ transform: 'translateX(0px)' }}
+                                data-percent="100"
+                            >
+                                <div className="flex gap-1">
+                                    <div className="w-1 h-3 bg-white/50" />
+                                    <div className="w-1 h-3 bg-white/50" />
+                                </div>
+                            </div>
+                        </>
+                    )}
+                    <div
                         ref={hoverLineRef}
                         className="absolute top-0 left-0 w-[2px] h-full border-l border-dashed border-zinc-400 opacity-0 pointer-events-none z-0"
                         style={{ transition: 'opacity 0.2s' }}
