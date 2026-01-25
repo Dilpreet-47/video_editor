@@ -5,12 +5,12 @@ import router from "./routes/main.routes.js";
 import path from "path";
 import { fileURLToPath } from 'url'; // Add this
 
-const app = express();
-
 // --- ES MODULE FIX ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // ---------------------
+
+const app = express();
 
 app.use(
   cors({
@@ -29,8 +29,13 @@ app.use(express.static("public"));
 
 // PROPER STATIC PATH DEFINITION
 // This tells Express: When someone visits /uploads, look in public/uploads/trimmed
-app.use('/Uploads', express.static(path.join(__dirname, 'public/Uploads/Trimmed')));
-
+// app.use('/Uploads', express.static(path.join(__dirname, 'public/Uploads/Trimmed')));
+app.use('/Uploads', express.static(path.join(__dirname, 'public/Uploads/Trimmed'), {
+    setHeaders: (res) => {
+        res.set('Access-Control-Allow-Origin', '*'); // Relaxes security for the media resource
+        res.set('Accept-Ranges', 'bytes');          // Crucial for video streaming
+    }
+}));
 app.use(cookieParser());
 app.use("/api/v1/videdit", router);
 

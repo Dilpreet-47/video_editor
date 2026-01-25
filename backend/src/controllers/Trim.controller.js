@@ -1,8 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import path from 'path';
 import { fileURLToPath } from 'url';
-
+import path from 'path';
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +43,7 @@ export const trimVideo = (req, res) => {
         .on('error', (err) => {
             console.error('FFmpeg Error:', err.message);
             res.status(500).json({ error: "Trimming process failed", details: err.message });
-        })
+        })  
         .on('end', () => {
             console.log('Trimming complete:', outputName);
             res.status(200).json({
@@ -52,7 +51,7 @@ export const trimVideo = (req, res) => {
                 message: "Video trimmed successfully",
                 data: {
                     // This matches app.use('/uploads', ...) in your app.js
-                    trimmedPath: `uploads/${outputName}`,
+                    trimmedPath: `Uploads/Trimmed/${outputName}`,
                     fileName: outputName
                 }
             });
