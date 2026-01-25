@@ -1,22 +1,15 @@
 import axios from "axios";
 import React, { useRef, useState } from "react";
-import Ruler from "./Ruler.jsx";
-import { Link } from "react-router-dom";
 import Timeline from "./Timeline.jsx";
 
 export const Home = () => {
     const [videoSource, setVideoSource] = useState(null);
-    const [selectedFile, setSelectedFile] = useState(null); // Added this to store the file
+    const [selectedFile, setSelectedFile] = useState(null);
     const [backendPath, setBackendPath] = useState("");
     const [isUploading, setIsUploading] = useState(false);
-    const [isTrimming, setIsTrimming] = useState(false);
 
     const videoRef = useRef(null);
-    const playheadRef = useRef(null);
-    const timelineRef = useRef(null);
-    const hoverLineRef = useRef(null);
 
-    // 1. Handle Selection
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -25,7 +18,6 @@ export const Home = () => {
         setVideoSource(URL.createObjectURL(file));
     };
 
-    // 2. Handle Upload
     const handleVideoUpload = async () => {
         if (!selectedFile) return alert("Please select a video first");
 
@@ -47,156 +39,6 @@ export const Home = () => {
             setIsUploading(false);
         }
     };
-
-    const handleTimeUpdate = () => {
-        if (videoRef.current && playheadRef.current) {
-            const video = videoRef.current;
-            const progress = (video.currentTime / video.duration) * 100;
-            playheadRef.current.style.left = `${progress}%`;
-        }
-    };
-
-    const handleMouseMove = (e) => {
-        if (!timelineRef.current || !hoverLineRef.current) return;
-
-        const rect = timelineRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-
-        hoverLineRef.current.style.transform = `translateX(${x}px)`;
-        hoverLineRef.current.style.opacity = "1";
-    };
-
-    const handleMouseLeave = () => {
-        if (hoverLineRef.current) {
-            hoverLineRef.current.style.opacity = "0";
-        }
-    };
-
-    const handleTimelineClick = (e) => {
-        if (!videoRef.current || isTrimming) return;
-
-        const rect = timelineRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-
-        const timelineWidth = rect.width;
-        const clickedPosition = (x / timelineWidth) * videoRef.current.duration;
-
-        videoRef.current.currentTime = clickedPosition; // Set video time to clicked position
-
-        // Update playhead position
-        const progress = (clickedPosition / videoRef.current.duration) * 100;
-        playheadRef.current.style.left = `${progress}%`;
-    };
-
-    const trimStartRef = useRef(null);
-    const trimEndRef = useRef(null);
-    const draggingHandle = useRef(null);
-
-    React.useEffect(() => {
-        if (isTrimming && timelineRef.current && trimEndRef.current && trimRangeRef.current) {
-            const width = timelineRef.current.clientWidth;
-
-            // Initialize End Handle data
-            trimEndRef.current.dataset.x = width;
-            trimEndRef.current.dataset.percent = 100;
-
-            // Initialize Start Handle data
-            trimStartRef.current.dataset.x = 0;
-            trimStartRef.current.dataset.percent = 0;
-
-            // Reset highlight to full width
-            trimRangeRef.current.style.left = "0px";
-            trimRangeRef.current.style.width = `${width}px`;
-        }
-    }, [isTrimming]);
-
-
-    const startTrimDragging = (type) => (e) => {
-        e.stopPropagation(); // Prevents playhead from jumping
-        draggingHandle.current = type;
-
-        const onMouseMove = (moveEvent) => {
-            if (!draggingHandle.current || !timelineRef.current) return;
-
-            const rect = timelineRef.current.getBoundingClientRect();
-            let x = Math.max(0, Math.min(moveEvent.clientX - rect.left, rect.width));
-            const percentage = (x / rect.width) * 100;
-
-            const startPercent = parseFloat(trimStartRef.current.dataset.percent || "0");
-            const endPercent = parseFloat(trimEndRef.current.dataset.percent || "100");
-
-            if (draggingHandle.current === 'start') {
-                if (percentage < endPercent - 2) {
-                    trimStartRef.current.style.transform = `translateX(${x}px)`;
-                    trimStartRef.current.dataset.percent = percentage;
-                    trimStartRef.current.dataset.x = x; // <--- ADD THIS
-                }
-            } else if (draggingHandle.current === 'end') {
-                if (percentage > startPercent + 2) {
-                    trimEndRef.current.style.transform = `translateX(${x - 16}px)`;
-                    trimEndRef.current.dataset.percent = percentage;
-                    trimEndRef.current.dataset.x = x; // <--- ADD THIS
-                }
-            }
-
-            // UPDATE THE HIGHLIGHT BOX
-            if (trimRangeRef.current) {
-                // Use the pixels we just saved. Fallback to 0/Width if not moved yet.
-                const sX = parseFloat(trimStartRef.current.dataset.x || "0");
-                const eX = parseFloat(trimEndRef.current.dataset.x || rect.width.toString());
-
-                trimRangeRef.current.style.left = `${sX}px`;
-                trimRangeRef.current.style.width = `${eX - sX}px`;
-            }
-        };
-
-        const onMouseUp = () => {
-            draggingHandle.current = null;
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-    };
-
-    const handleTrim = async () => {
-        const video = videoRef.current;
-        if (!video || !backendPath) return;
-
-        // 1. Get percentages from your draggable handles
-        const startPercent = parseFloat(trimStartRef.current.dataset.percent || 0);
-        const endPercent = parseFloat(trimEndRef.current.dataset.percent || 100);
-
-        // 2. Convert percentages to actual seconds
-        const startSeconds = (startPercent / 100) * video.duration;
-        const endSeconds = (endPercent / 100) * video.duration;
-
-        // 3. Send to backend
-        try {
-            const response = await axios.post("http://localhost:5000/api/v1/videdit/trim", {
-                filePath: backendPath,
-                startTime: startSeconds,
-                endTime: endSeconds    // The controller will now handle the math
-            });
-
-            // 4. Update the player with the new short video// 4. Update the player
-            const newUrl = `http://localhost:5000/${response.data.data.trimmedPath}`;
-            setVideoSource(newUrl);
-            // IMPORTANT: Give React a millisecond to update the DOM, then force a reload
-            setTimeout(() => {
-                if (videoRef.current) {
-                    videoRef.current.load(); // Forces browser to re-check MIME type/format
-                }
-            }, 100);
-            setIsTrimming(false); // Close trim mode
-            alert(response.data.message);
-        } catch (err) {
-            console.error("Trim request failed", err);
-        }
-    };
-
-    const trimRangeRef = useRef(null);
 
     return (
         <div className="flex flex-col w-full h-screen bg-black text-white overflow-hidden">
@@ -256,29 +98,17 @@ export const Home = () => {
                         )}
                     </div>
                 </main>
-
+            
             </div>
 
             {/* Timeline Section */}
             <Timeline
-                setIsTrimming={setIsTrimming}
-                isTrimming={isTrimming}
-                handleTrim={handleTrim}
-                handleMouseMove={handleMouseMove}
-                handleMouseLeave={handleMouseLeave}
-                handleTimelineClick={handleTimelineClick}
-                startTrimDragging={startTrimDragging}
-                trimStartRef={trimStartRef}
-                trimEndRef={trimEndRef}
-                trimRangeRef={trimRangeRef}
-                hoverLineRef={hoverLineRef}
-                playheadRef={playheadRef}
-                timelineRef={timelineRef}
+                videoRef={videoRef}
+                backendPath={backendPath} // Pass the string, not a setter
+                setVideoSource={setVideoSource} // Allow Timeline to update the player
             />
         </div>
     );
 };
-
-
 
 export default Home;
