@@ -106,6 +106,7 @@ export const Home = () => {
                 videoRef={videoRef}
                 backendPath={backendPath} // Pass the string, not a setter
                 setVideoSource={setVideoSource} // Allow Timeline to update the player
+                videoSource={videoSource}
             />
         </div>
     );

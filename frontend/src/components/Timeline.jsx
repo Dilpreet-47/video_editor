@@ -1,9 +1,10 @@
 import React, { useRef, useState } from "react";
 import axios from "axios";
 
-const Timeline = ({videoRef, backendPath, setVideoSource}) => {
+const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource }) => {
 
     const [isTrimming, setIsTrimming] = useState(false);
+    const [lastTrimmedFile, setLastTrimmedFile] = useState("");
     const trimStartRef = useRef(null);
     const trimEndRef = useRef(null);
     const trimRangeRef = useRef(null);
@@ -130,7 +131,7 @@ const Timeline = ({videoRef, backendPath, setVideoSource}) => {
                 startTime: startSeconds,
                 endTime: endSeconds    // The controller will now handle the math
             });
-
+            setLastTrimmedFile(response.data.data.fileName);
             // 4. Update the player with the new short video// 4. Update the player
             const newUrl = `http://localhost:5000/${response.data.data.trimmedPath}`;
             setVideoSource(newUrl);
@@ -156,23 +157,28 @@ const Timeline = ({videoRef, backendPath, setVideoSource}) => {
     };
 
     const handleExport = async () => {
-        if (!videoRef.current || !backendPath) return;
+        if (!lastTrimmedFile) return alert("Please trim a video first!");
 
         try {
-            const response = await axios.post("http://localhost:5000/api/v1/videdit/export", {
-                filePath: backendPath,
-            });
+            const response = await axios.post(
+                "http://localhost:5000/api/v1/videdit/export",
+                { fileName: lastTrimmedFile },
+                { responseType: "blob" } // CRUCIAL: Tells axios to handle binary data
+            );
 
-            const newUrl = `http://localhost:5000/${response.data.data.exportedPath}`;
-            setVideoSource(newUrl);
-            setTimeout(() => {
-                if (videoRef.current) {
-                    videoRef.current.load();
-                }
-            }, 100);
-            alert(response.data.message);
+            // Create a hidden link and click it to trigger the "Save As" box
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "Exported_Video.mp4");
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup memory
+            link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (err) {
-            console.error("Export request failed", err);
+            console.error("Export failed", err);
         }
     };
 
@@ -181,7 +187,7 @@ const Timeline = ({videoRef, backendPath, setVideoSource}) => {
             <div className="flex items-center gap-4">
                 <button onClick={() => setIsTrimming((prev) => !prev)} className="text-xs px-3 py-2 rounded font-bold transition bg-blue-600 hover:bg-blue-500 text-white cursor-pointer">Trim</button>
                 {isTrimming && <button onClick={handleTrim} className="text-xs px-3 py-2 rounded font-bold transition bg-blue-600 hover:bg-blue-500 text-white cursor-pointer">Trim Video</button>}
-                {isTrimming && <button onClick={handleExport} className="text-xs px-3 py-2 rounded font-bold transition bg-blue-600 hover:bg-blue-500 text-white cursor-pointer">Export Video</button>}
+                <button onClick={handleExport} className="text-xs px-3 py-2 rounded font-bold transition bg-blue-600 hover:bg-blue-500 text-white cursor-pointer">Export Video</button>
             </div>
             <div ref={timelineRef} className="w-full h-20 bg-zinc-800/50 rounded-lg border border-zinc-700 relative overflow-hidden" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onClick={handleTimelineClick}>
                 {isTrimming && (

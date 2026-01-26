@@ -9,6 +9,18 @@ if (!fs.existsSync(uploadDir)) {
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
+        try {
+            if (fs.existsSync(uploadDir)) {
+                const files = fs.readdirSync(uploadDir);
+                for (const existingFile of files) {
+                    // This deletes every file in the folder before saving the new one
+                    fs.unlinkSync(path.join(uploadDir, existingFile));
+                }
+                console.log("Old videos cleared from storage.");
+            }
+        } catch (err) {
+            console.error("Error clearing old files:", err);
+        }
         cb(null, uploadDir);
     },  
     filename: function (req, file, cb) {
@@ -19,5 +31,5 @@ const storage = multer.diskStorage({
 
 export const upload = multer({ 
     storage,
-    limits: { fileSize: 100 * 1024 * 1024 }
+    limits: { fileSize: 500 * 1024 * 1024 }
 });

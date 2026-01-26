@@ -8,6 +8,6 @@ const router = express.Router();
 
 router.post("/upload", upload.single("video"), uploadVideo);
 router.post("/trim", upload.single("video"), trimVideo);
-router.post("/export", upload.single("video"), exportVideo);
+router.post("/export", exportVideo);
 
 export default router;  
