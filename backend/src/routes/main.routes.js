@@ -6,8 +6,12 @@ import { exportVideo } from "../controllers/Export.controller.js";
 
 const router = express.Router();
 
-router.post("/upload", upload.single("video"), uploadVideo);
-router.post("/trim", upload.single("video"), trimVideo);
+router.post("/upload", upload.fields([
+    { name: "video", maxCount: 1 },
+    { name: "audio", maxCount: 1 }
+]), uploadVideo);
+
+router.post("/trim",  trimVideo);
 router.post("/export", exportVideo);
 
-export default router;  
+export default router;

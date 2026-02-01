@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import axios from "axios";
 
-const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource }) => {
+const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource, audioPath }) => {
 
     const [isTrimming, setIsTrimming] = useState(false);
     const [lastTrimmedFile, setLastTrimmedFile] = useState("");
@@ -114,23 +114,24 @@ const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource }) => {
 
     const handleTrim = async () => {
         const video = videoRef.current;
+        // Ensure you have access to the audioPath here
+        // If audioPath is coming from props, use props.audioPath
         if (!video || !backendPath) return;
 
-        // 1. Get percentages from your draggable handles
         const startPercent = parseFloat(trimStartRef.current.dataset.percent || 0);
         const endPercent = parseFloat(trimEndRef.current.dataset.percent || 100);
 
-        // 2. Convert percentages to actual seconds
         const startSeconds = (startPercent / 100) * video.duration;
         const endSeconds = (endPercent / 100) * video.duration;
 
-        // 3. Send to backend
         try {
             const response = await axios.post("http://localhost:5000/api/v1/videdit/trim", {
                 filePath: backendPath,
+                audioPath: audioPath, // <--- ADD THIS LINE
                 startTime: startSeconds,
-                endTime: endSeconds    // The controller will now handle the math
+                endTime: endSeconds
             });
+
             setLastTrimmedFile(response.data.data.fileName);
             // 4. Update the player with the new short video// 4. Update the player
             const newUrl = `http://localhost:5000/${response.data.data.trimmedPath}`;
