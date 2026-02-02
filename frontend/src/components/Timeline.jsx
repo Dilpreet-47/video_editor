@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
 import axios from "axios";
+import Audio_timeline from "./Audio_timeline.jsx";
 
-const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource, audioPath }) => {
+const Timeline = ({ videoRef, backendPath, setVideoSource, audioPath, playheadRef }) => {
 
     const [isTrimming, setIsTrimming] = useState(false);
     const [lastTrimmedFile, setLastTrimmedFile] = useState("");
@@ -9,7 +10,6 @@ const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource, audioPat
     const trimEndRef = useRef(null);
     const trimRangeRef = useRef(null);
     const hoverLineRef = useRef(null);
-    const playheadRef = useRef(null);
     const timelineRef = useRef(null);
     const draggingHandle = useRef(null);
 
@@ -149,13 +149,13 @@ const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource, audioPat
         }
     };
 
-    const handleTimeUpdate = () => {
-        if (videoRef.current && playheadRef.current) {
-            const video = videoRef.current;
-            const progress = (video.currentTime / video.duration) * 100;
-            playheadRef.current.style.left = `${progress}%`;
-        }
-    };
+    // const handleTimeUpdate = () => {
+    //     if (videoRef.current && playheadRef.current) {
+    //         const video = videoRef.current;
+    //         const progress = (video.currentTime / video.duration) * 100;
+    //         playheadRef.current.style.left = `${progress}%`;
+    //     }
+    // };
 
     const handleExport = async () => {
         if (!lastTrimmedFile) return alert("Please trim a video first!");
@@ -230,6 +230,7 @@ const Timeline = ({ videoRef, backendPath, setVideoSource, videoSource, audioPat
                 />
                 <div ref={playheadRef} className="absolute left-0 top-0 w-[2px] h-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] z-10 cursor-pointer" />
             </div>
+            <Audio_timeline audioPath={audioPath} />
         </section>
 
     );

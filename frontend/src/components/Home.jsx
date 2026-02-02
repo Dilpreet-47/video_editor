@@ -14,6 +14,7 @@ const Home = () => {
     const [projectAssets, setProjectAssets] = useState(null);
 
     const videoRef = useRef(null);
+    const playheadRef = useRef(null);
 
     // One function to handle both file selections
     // 1. Updated handler to accept a 'type' parameter
@@ -69,7 +70,13 @@ const Home = () => {
         }
     };
 
-
+    const handleTimeUpdate = () => {
+        if (videoRef.current && playheadRef.current) {
+            const video = videoRef.current;
+            const progress = (video.currentTime / video.duration) * 100;
+            playheadRef.current.style.left = `${progress}%`;
+        }
+    };
     
     return (
         <div className="flex flex-col w-full h-screen bg-black text-white overflow-hidden">
@@ -128,7 +135,7 @@ const Home = () => {
                 <main className="h-full flex-1 bg-zinc-800 flex items-center justify-center relative p-10">
                     <div className="aspect-video w-full max-w-4xl bg-black shadow-2xl flex items-center justify-center rounded-lg overflow-hidden border border-zinc-700">
                         {videoSource ? (
-                            <video key={videoSource} ref={videoRef} controls className="w-full h-full">
+                            <video key={videoSource} ref={videoRef} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleTimeUpdate} controls className="w-full h-full">
                                 <source src={videoSource} type="video/mp4" />
                             </video>
                         ) : (
@@ -148,6 +155,8 @@ const Home = () => {
                 videoSource={videoSource}
                 // TIP: You might want to pass projectAssets to Timeline too
                 audioPath={projectAssets?.audioData?.path}
+                playheadRef={playheadRef}
+                handleTimeUpdate={handleTimeUpdate}
             />
         </div>
     );
